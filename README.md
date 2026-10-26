@@ -5,7 +5,7 @@
 <h1>opengeo</h1>
 
 <p>
-  <a href="https://pypi.org/project/opengeo/"><img src="favicon.svg" alt="" width="22" height="22" align="center"> pip install opengeo</a>
+  <a href="#install"><img src="favicon.svg" alt="" width="22" height="22" align="center"> pip install opengeo</a>
 </p>
 
 **Keyless AI-search visibility (GEO), SEO content briefs, on-page content quality,
