@@ -7,6 +7,7 @@ hard dependency). No fonts or images are fabricated.
 from __future__ import annotations
 
 import io
+import os
 from datetime import datetime
 from typing import Optional
 
@@ -42,6 +43,44 @@ def _safe_logo(pdf: "PDF", path: str) -> bool:
         return False
 
 
+# Built-in core fonts are latin-1 only. Real SERP snippets routinely carry
+# unicode (Bing truncates with U+2026, quotes, dashes, arrows), and fpdf2
+# raises FPDFUnicodeEncodingException on any codepoint outside latin-1 -- which
+# crashed the whole report over one ellipsis. Map the common ones to readable
+# latin-1 equivalents, then replace anything still out of range with '?' so we
+# degrade instead of dying. Never drop silently: '?' marks a visible loss.
+_PDF_SAFE_MAP = {
+    0x00A0: " ",    # nbsp
+    0x2013: "-",    # en dash
+    0x2014: "--",   # em dash
+    0x2018: "'",    # left single quote
+    0x2019: "'",    # right single quote / apostrophe
+    0x201C: '"',    # left double quote
+    0x201D: '"',    # right double quote
+    0x201E: '"',    # low double quote
+    0x2022: "*",    # bullet
+    0x2026: "...",  # horizontal ellipsis
+    0x2032: "'",    # prime
+    0x2033: '""',   # double prime
+    0x2192: "->",   # right arrow
+    0x2190: "<-",   # left arrow
+    0x25CF: "*",    # black circle
+    0x2713: "[ok]", # check mark
+    0x2717: "[x]",  # ballot x
+    0x2794: "->",   # long right arrow
+}
+
+
+def _pdf_safe(text) -> str:
+    """Make *text* renderable by a latin-1 core font without raising."""
+    if not isinstance(text, str):
+        return text
+    for code, repl in _PDF_SAFE_MAP.items():
+        if chr(code) in text:
+            text = text.replace(chr(code), repl)
+    return "".join(ch if (9 <= ord(ch) < 256) else "?" for ch in text)
+
+
 class GeoPDF(FPDF):
     def __init__(self, company: str = "opengeo", footer_right: str = ""):
         super().__init__(orientation="P", unit="mm", format="A4")
@@ -52,6 +91,11 @@ class GeoPDF(FPDF):
         self.set_right_margin(20)
         self.set_top_margin(20)
         self.set_font("Helvetica", size=11)
+
+    def normalize_text(self, text: str) -> str:
+        # Every cell()/multi_cell()/write() funnels through here, so this is the
+        # single choke point that keeps unicode from crashing the report.
+        return super().normalize_text(_pdf_safe(text))
 
     def header(self):
         if self.page_no() > 1:
@@ -125,6 +169,10 @@ class Report:
 
         self._sources_section(pdf, visibility, brief)
 
+        # A missing output directory must not be a reason to lose a report you
+        # just spent a few minutes fetching. Create it, don't crash.
+        parent = os.path.dirname(os.path.abspath(self.out))
+        os.makedirs(parent, exist_ok=True)
         pdf.output(self.out)
         return self.out
 
