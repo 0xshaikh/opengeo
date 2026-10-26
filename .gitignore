@@ -1,0 +1,44 @@
+# Build
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+wheels/
+*.whl
+*.tar.gz
+
+# Python
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Local data
+.opengeo/
+*.sqlite
+*.sqlite3
+*.db
+!docs/*.pdf
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Docs output
+docs/*.pdf
+docs/*.png
+!docs/.gitkeep
+
+# Local build tasking
+BRIEF.md
